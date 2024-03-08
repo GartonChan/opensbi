@@ -6,8 +6,6 @@
 #include <sbi/ebi/partition_pool.h>
 #include <sbi/ebi/iomngr.h>
 
-extern struct sbi_ecall_extension ecall_ebi;
-
 int init_sm()
 {
 	int rc;
@@ -15,11 +13,6 @@ int init_sm()
 	init_enclave_desc();
 
 	// init_memory_pool();
-
-    rc = sbi_ecall_register_extension(&ecall_ebi);
-    if (rc) {
-        return rc;
-    }
 
     rc = init_partition_pool();
     if (rc) {

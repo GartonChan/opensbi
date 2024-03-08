@@ -1,5 +1,4 @@
 #include "enclave/eid.h"
-#include "sys/types.h"
 #include <sbi/ebi/ebi_debug.h>
 #include <ebi_ecall.h>
 #include <sbi/riscv_asm.h>
@@ -145,7 +144,7 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
 
     case SBI_EXT_EVAL_GET_TIMER:
         if (eid != HOST_EID)
-            panic("Cannot get timer in enclaves\n");
+            sbi_panic("Cannot get timer in enclaves\n");
         ret = get_timer(regs->a0, regs->a1);
         break;
 
@@ -193,7 +192,7 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
         break;
 
     case SBI_EXT_EBI_GET_STATUS:
-        if (regs->a0 == 0 && regs->a0 > NUM_ENCLAVE)  // may be problems here
+        if (regs->a0 == 0 || regs->a0 > NUM_ENCLAVE)
             ret = 0;
         else 
             ret = (u64)get_enclave_status(regs->a0);
@@ -214,11 +213,11 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
 
     regs->mepc -= 4;
     
-    /* Only pass valid return value to out->value */
+    /* Only pass valid return value to regs->a0 */
     if (ret >= 0) {
-		out->value = ret;  
+		regs->a0 = ret;  
 		ret = 0;
 	}
 
-    return ret;
+    return ret;  // return ErrorCode (negative) when errors occur
 }

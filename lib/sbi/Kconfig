@@ -50,7 +50,7 @@ config SBI_ECALL_DBTR
 	bool "Debug Trigger Extension"
 	default y
 
-config SBI_ECALL_EBI
+config SBI_EBI
 	bool "Enclave Extension"
 	default y
 

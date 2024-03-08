@@ -109,30 +109,9 @@ int sbi_ecall_handler(struct sbi_trap_regs *regs)
 	struct sbi_ecall_extension *ext;
 	unsigned long extension_id = regs->a7;
 	unsigned long func_id = regs->a6;
-	struct sbi_trap_info trap = {0};
 	struct sbi_ecall_return out = {0};
 	bool is_0_1_spec = 0;
 	
-	ulong prev_mode = (regs->mstatus & MSTATUS_MPP) >> MSTATUS_MPP_SHIFT;
-    /* The U-mode ecall is a system call if a7 is not SBI_EXT_EBI */
-	if (prev_mode == PRV_U && extension_id != SBI_EXT_EBI) {
-        u64 eid = get_current_eid();
-        // intercept threading-related syscalls
-        if (eid != HOST_EID && extension_id == 220) {
-            ret = sys_clone_handler(regs);
-            goto exit;
-        }
-
-        // set trap struct
-        trap.epc = regs->mepc;
-        trap.cause = csr_read(CSR_MCAUSE);
-        trap.tval = csr_read(CSR_MTVAL);
-        // H-mode is not considered
-        trap.tval2 = 0;
-        trap.tinst = 0;
-        return sbi_trap_redirect(regs, &trap);
-    }
-
 	ext = sbi_ecall_find_extension(extension_id);
 	if (ext && ext->handle) {
 		ret = ext->handle(extension_id, func_id, regs, &out);
@@ -143,7 +122,6 @@ int sbi_ecall_handler(struct sbi_trap_regs *regs)
 		ret = SBI_ENOTSUPP;
 	}
 
-exit:	
 	if (!out.skip_regs_update) {
 		if (ret < SBI_LAST_ERR ||
 		    (extension_id != SBI_EXT_0_1_CONSOLE_GETCHAR &&
@@ -162,15 +140,10 @@ exit:
 		 * accordingly for now. Once fatal errors are defined, that
 		 * case should be handled differently.
 		 */
-		// regs->mepc += 4;
-		// regs->a0 = ret;
-		// if (!is_0_1_spec)
-		// 	regs->a1 = out.value;
-		if (extension_id != SBI_EXT_EBI && extension_id != 220) { // todo: should be a list
-            regs->a0 = ret;
-			if (!is_0_1_spec)
-				regs->a1 = out.value;
-        }
+		regs->mepc += 4;
+		regs->a0 = ret;
+		if (!is_0_1_spec)
+			regs->a1 = out.value;
 	}
 
 	return 0;

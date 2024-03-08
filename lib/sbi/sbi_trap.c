@@ -360,13 +360,13 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 
 	switch (mcause) {
 	case CAUSE_ILLEGAL_INSTRUCTION:
-		// if (regs->a7 == SBI_EXT_EBI) {
-		// 	rc = sbi_ebi_handler(regs);  // return non-zero if error
-		// 	msg = "ebi handler failed";
-		// } else {
+		if (CONFIG_SBI_EBI && regs->a7 == SBI_EXT_EBI) {
+			rc = sbi_ebi_handler(regs);  // return non-zero if error
+			msg = "ebi handler failed";
+		} else {
 			rc  = sbi_illegal_insn_handler(mtval, regs);
 			msg = "illegal instruction handler failed";
-		// }
+		}
 		break;
 	case CAUSE_MISALIGNED_LOAD:
 		rc = sbi_misaligned_load_handler(mtval, mtval2, mtinst, regs);
