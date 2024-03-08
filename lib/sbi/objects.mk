@@ -55,6 +55,9 @@ libsbi-objs-$(CONFIG_SBI_ECALL_VENDOR) += sbi_ecall_vendor.o
 carray-sbi_ecall_exts-$(CONFIG_SBI_ECALL_DBTR) += ecall_dbtr
 libsbi-objs-$(CONFIG_SBI_ECALL_DBTR) += sbi_ecall_dbtr.o
 
+carray-sbi_ecall_exts-$(CONFIG_SBI_ECALL_EBI) += ecall_ebi
+libsbi-objs-$(CONFIG_SBI_ECALL_EBI) += sbi_ecall_ebi.o
+
 libsbi-objs-y += sbi_bitmap.o
 libsbi-objs-y += sbi_bitops.o
 libsbi-objs-y += sbi_console.o
@@ -83,3 +86,21 @@ libsbi-objs-y += sbi_trap.o
 libsbi-objs-y += sbi_unpriv.o
 libsbi-objs-y += sbi_expected_trap.o
 libsbi-objs-y += sbi_cppc.o
+
+libsbi-objs-y += sbi_ecall_ebi.o
+libsbi-objs-y += ebi/sm.o
+libsbi-objs-y += ebi/enclave/enclave.o
+libsbi-objs-y += ebi/memory/partition_pool.o
+libsbi-objs-y += ebi/memory/memory_util.o
+libsbi-objs-y += ebi/memory/memngr.o
+libsbi-objs-y += ebi/memory/region.o
+libsbi-objs-y += ebi/message/message_channel.o
+libsbi-objs-y += ebi/debug/debug.o
+libsbi-objs-y += ebi/pmp/lpmp.o
+libsbi-objs-y += ebi/eval/eval.o
+libsbi-objs-y += ebi/eval/eval_config.o
+libsbi-objs-y += ebi/ipi.o
+# libsbi-objs-y += ebi/memory/memngr.o
+# libsbi-objs-y += ebi/memory/mempool.o
+libsbi-objs-y += ebi/iomngr/iomngr.o
+libsbi-objs-y += ebi/tklock.o

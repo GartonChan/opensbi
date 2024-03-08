@@ -14,7 +14,7 @@ int ebi_mem_alloc_handler(struct sbi_trap_regs *regs)
 		current_eid, number_of_partitions);
 
 	if (current_eid == HOST_EID)
-		panic("Error: host memory allocation currently not supported\n");
+		sbi_panic("Error: host memory allocation currently not supported\n");
 
 	regs->a1 = alloc_partitions_for_enclave(
 		current_eid,

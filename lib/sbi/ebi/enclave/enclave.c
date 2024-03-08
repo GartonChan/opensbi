@@ -105,16 +105,6 @@ static spinlock_t 			tid_table_lock;
 static u64 					eid_count = 1;
 static spinlock_t 			eid_lock;
 
-__unused void *memcpy(void *dest, const void *src, size_t count)
-{
-	return sbi_memcpy(dest, src, count);
-}
-
-__unused void *memset(void *s, int c, size_t count)
-{
-	return sbi_memset(s, c, count);
-}
-
 static inline void spin_lock_enclave(u64 eid)
 {
     sbi_debug("Get enclave 0x%ld lock\n", eid);
@@ -146,7 +136,7 @@ void init_enclave_desc()
             enclave_desc[i].clear_child_tid[j] = 0;
 			enclave_desc[i].p_tid[j] = -1UL;
         }
-		SPIN_LOCK_INIT(&enclave_desc[i].lock);
+		SPIN_LOCK_INIT(enclave_desc[i].lock);
 	}
 
 	for (u64 i = 0; i < NUM_CORES; i++) {
@@ -154,12 +144,12 @@ void init_enclave_desc()
 			.eid 	= HOST_EID,
 			.hartid = i
 		};
-		SPIN_LOCK_INIT(&host_desc[i].lock);
+		SPIN_LOCK_INIT(host_desc[i].lock);
 	}
 
 	// ATOMIC_INIT(&num_initializing, 0);
-	SPIN_LOCK_INIT(&eid_table_lock);
-	SPIN_LOCK_INIT(&tid_table_lock);
+	SPIN_LOCK_INIT(eid_table_lock);
+	SPIN_LOCK_INIT(tid_table_lock);
 }
 
 static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
@@ -171,7 +161,7 @@ static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
 		return &host_ctx[hart_id];
 	} else {
 		if (eid > NUM_ENCLAVE)
-			panic("Invalid eid\n");
+			sbi_panic("Invalid eid\n");
 		// sbi_debug("enclave 0x%lx context\n", eid);
 		// show(eid);
 		return &enclave_ctx[eid][tid];
@@ -363,7 +353,7 @@ static u64 __new_alive_thread(u64 eid, u64 p_tid)
 	*alive_threads |= (1UL << new_tid);
 	enclave_desc[eid].p_tid[new_tid] = p_tid;
 	if (new_tid >= NUM_THREADS) {
-		panic("Too many threads!\n");
+		sbi_panic("Too many threads!\n");
 	}
 	sbi_debug("New thread of enclave %lu: thread %lu\n", eid, new_tid);
 	return new_tid;
@@ -442,14 +432,14 @@ static void __thread_bring_online(u64 eid, u64 tid)
 	if (eid != HOST_EID && !thread_is_alive(alive_threads, tid)) {
 		sbi_error("Enclave %lu thread %lu not alive (alive threads: 0x%lx)\n",
 			eid, tid, alive_threads);
-		panic("Try to bring up dead thread\n");
+		sbi_panic("Try to bring up dead thread\n");
 	}
 
 	u64 *online_threads = &enclave_desc[eid].online_threads;
 	if (eid != HOST_EID && thread_is_online(*online_threads, tid)) {
 		sbi_error("Enclave %lu thread %lu already online (online threads: 0x%lx)\n",
 			eid, tid, *online_threads);
-		panic("Try to bring up an online thread\n");
+		sbi_panic("Try to bring up an online thread\n");
 	}
 
 	*online_threads |= (1UL << tid);
@@ -462,14 +452,14 @@ static void __thread_bring_offline(u64 eid, u64 tid)
 	if (eid != HOST_EID && !thread_is_alive(alive_threads, tid)) {
 		sbi_error("Enclave %lu thread %lu not alive (alive threads: 0x%lx)\n",
 			eid, tid, alive_threads);
-		panic("Try to bring down dead thread\n");
+		sbi_panic("Try to bring down dead thread\n");
 	}
 
 	u64 *online_threads = &enclave_desc[eid].online_threads;
 	if (eid != HOST_EID && !thread_is_online(*online_threads, tid)) {
 		sbi_error("Enclave %lu thread %lu already offline (online threads: 0x%lx)\n",
 			eid, tid, *online_threads);
-		panic("Try to bring down an offline thread\n");
+		sbi_panic("Try to bring down an offline thread\n");
 	}
 
 	*online_threads &= ~(1UL << tid);
@@ -488,7 +478,7 @@ static void block_thread(u64 eid, u64 tid)
     u64 alive_threads = enclave_desc[eid].alive_threads;
     if (unlikely(alive_threads == *blocked_threads)) {
         sbi_error("All threads blocked!\n");
-        panic("Dead Lock Detected\n");
+        sbi_panic("Dead Lock Detected\n");
     }
 
 	spin_unlock_enclave(eid);
@@ -503,7 +493,7 @@ static void unblock_threads(u64 eid, u64 threads_to_unblock)
     u64 *blocked_threads = &enclave_desc[eid].blocked_threads;
     if (threads_to_unblock > *blocked_threads) {
         LOG(threads_to_unblock); LOG(*blocked_threads);
-        panic("Trying to unblock unblocked threads\n");
+        sbi_panic("Trying to unblock unblocked threads\n");
     }
     *blocked_threads &= ~threads_to_unblock;
 	sbi_debug("Enclave %lu blocked threads: 0x%lx\n", eid, enclave_desc[eid].blocked_threads);
@@ -559,7 +549,7 @@ static u64 allocate_free_eid()
 	u64 ret;
 
 	if (!init) {
-		SPIN_LOCK_INIT(&eid_lock);
+		SPIN_LOCK_INIT(eid_lock);
 		init = 1;
 	}
 
@@ -674,7 +664,7 @@ static void save_float_context(u64 eid, u64 tid)
 		return; // clean state, early return
 	else if (unlikely((context->mstatus & MSTATUS_FS) != MSTATUS_FS_DIRTY)) {
 		sbi_error("Invalid mstatus FS field\n"); // not dirty nor clean, error
-		panic("Stall\n");
+		sbi_panic("Stall\n");
 	}
 
 	// dirty state, save context
@@ -689,7 +679,7 @@ static void restore_float_context(u64 eid, u64 tid)
 	enclave_context_t *context = get_context_by_eid_tid(eid, tid);
 	if (unlikely((context->mstatus & MSTATUS_FS) != MSTATUS_FS_CLEAN)) {
 		sbi_error("Invalid mstatus FS field\n"); // not clean, error
-		panic("Stall\n");
+		sbi_panic("Stall\n");
 	}
 	for (int i = 0; i < FPR_INDEX_MAX; i++)
 		SET_F64_REG_DIRECT(i, context->fprs[i]);
@@ -1016,7 +1006,7 @@ int ebi_create_handler(struct sbi_trap_regs* regs)
 	u64 current_eid = get_current_eid();
 
 	if (current_eid != HOST_EID)
-		panic("Error: enclaves must be created from host!\n");
+		sbi_panic("Error: enclaves must be created from host!\n");
 
 	boot_info_t boot_info = create_enclave();
 	show(boot_info.eid);
@@ -1096,16 +1086,16 @@ int ebi_suspend_handler(struct sbi_trap_regs* regs)
     u64 online_threads = enclave_desc[current_eid].online_threads;
 
 	if (current_eid == HOST_EID)
-		panic("Host cannot be suspended!\n");
+		sbi_panic("Host cannot be suspended!\n");
 
 	u8 status = __get_enclave_status(current_eid);
 	if (status != ENCLAVE_RUN && status != ENCLAVE_INIT) {
         LOG(status); LOG(online_threads);
-		panic("Enclave not running!\n");
+		sbi_panic("Enclave not running!\n");
     }
     if ((online_threads & (1 << current_tid)) == 0UL) {
         LOG(online_threads);
-        panic("Thread not online\n");
+        sbi_panic("Thread not online\n");
     }
     if ((online_threads & ~(1 << current_tid)) == 0UL) {
         __set_enclave_status(current_eid, ENCLAVE_IDLE);
@@ -1151,7 +1141,7 @@ static int __sys_vfork_handler(struct sbi_trap_regs* regs)
 	if (enclave_desc[eid].num_fork >= MAX_FORK) {
 		sbi_error("Enclave %lu num_fork:%lu >= MAX_FORK.\n",
 			eid, enclave_desc[eid].num_fork);
-		panic("number of fork exceeded limit\n");
+		sbi_panic("number of fork exceeded limit\n");
 	}
 	enclave_desc[eid].num_fork++;
 	vaddr_t c_stack_top = UMODE_STACK_TOP_VA - 
@@ -1197,7 +1187,7 @@ static int __sys_vfork_handler(struct sbi_trap_regs* regs)
 	alive_threads = enclave_desc[eid].alive_threads;
     if (unlikely(alive_threads == *blocked_threads)) {
         sbi_error("All threads blocked!\n");
-        panic("Dead Lock Detected\n");
+        sbi_panic("Dead Lock Detected\n");
     }
 	return 0;
 }
@@ -1232,7 +1222,7 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
 	if (flags != 0x7d0f00UL) {
 		sbi_warn("Unusual clone flags 0x%lx, expected 0x%lx\n",
 		flags, 0x7d0f00UL);
-        panic("Stall\n");
+        sbi_panic("Stall\n");
     }
 	
 	show(flags);
@@ -1330,7 +1320,7 @@ int ebi_resume_handler(struct sbi_trap_regs* regs)
 	u64 current_eid = get_current_eid();
 
 	if (current_eid != HOST_EID)
-		panic("Error: enclave can only be resumed from host!\n");
+		sbi_panic("Error: enclave can only be resumed from host!\n");
 
     u64 alive_threads = __get_alive_threads(eid);
     u64 online_threads = __get_online_threads(eid);
@@ -1345,11 +1335,11 @@ int ebi_resume_handler(struct sbi_trap_regs* regs)
 
     if (unlikely(!thread_is_alive(alive_threads, tid))) {
         LOG(eid); LOG(tid); LOG(alive_threads);
-        panic("thread not alive\n");
+        sbi_panic("thread not alive\n");
     }
     if (unlikely(thread_is_online(online_threads, tid))) {
         LOG(eid); LOG(tid); LOG(online_threads);
-        panic("thread already online\n");
+        sbi_panic("thread already online\n");
     }
 
     __set_enclave_status(eid, ENCLAVE_RUN);
@@ -1388,7 +1378,7 @@ int ebi_exit_thread_handler(struct sbi_trap_regs* regs)
     show(current_hartid());
 
     if (current_eid == HOST_EID)
-		panic("Error: enclave cannot be exited from host!\n");
+		sbi_panic("Error: enclave cannot be exited from host!\n");
 
     __enclave_switch(current_eid, current_tid, HOST_EID, 0UL, regs);
     __kill_thread(current_eid, current_tid);
@@ -1424,11 +1414,11 @@ int ebi_exit_handler(struct sbi_trap_regs* regs)
 		START_TIMER(clean_up, current_eid);
 
 		if (current_eid == HOST_EID)
-			panic("Error: enclave cannot be exited from host!\n");
+			sbi_panic("Error: enclave cannot be exited from host!\n");
 
 		u8 status = __get_enclave_status(current_eid);
 		if (status != ENCLAVE_RUN)
-			panic("Error: Enclave not running!\n");
+			sbi_panic("Error: Enclave not running!\n");
 
 		__enclave_switch(current_eid, current_tid,
 			HOST_EID, 0UL, regs);

@@ -104,4 +104,27 @@
 
 #endif
 
+#define GET_F64_REG_DIRECT(index)                                                                    \
+	({                                                                                              \
+		register ulong value asm("a0") =                                                        \
+			(ulong)(index) << 3;                                              						\
+		ulong tmp;                                                                              \
+		asm("1: auipc %0, %%pcrel_hi(get_f64_reg); add %0, %0, %1; jalr t0, %0, %%pcrel_lo(1b)" \
+		    : "=&r"(tmp), "+&r"(value)::"t0");                                                  \
+		sizeof(ulong) == 4 ? *(int64_t *)value : (int64_t)value;                                \
+	})
+#define SET_F64_REG_DIRECT(index, val)                                                         \
+	({                                                                                             \
+		uint64_t __val = (val);                                                                     \
+		register ulong value asm("a0") =                                                            \
+			sizeof(ulong) == 4 ? (ulong)&__val : (ulong)__val;                                  \
+		ulong offset = (ulong)(index) << 3;                                           \
+		ulong tmp;                                                                                  \
+		asm volatile(                                                                               \
+			"1: auipc %0, %%pcrel_hi(put_f64_reg); add %0, %0, %2; jalr t0, %0, %%pcrel_lo(1b)" \
+			: "=&r"(tmp)                                                                        \
+			: "r"(value), "r"(offset)                                                           \
+			: "t0");                                                                            \
+	})
+
 #endif

@@ -33,7 +33,7 @@ static message_channel_t tx_channel[NUM_ENCLAVE + 1];
 static message_channel_t *get_message_channel(u64 eid, u8	type)
 {
 	if (eid > NUM_ENCLAVE)
-		panic("Invalid eid\n");
+		sbi_panic("Invalid eid\n");
 
 	message_channel_t *channel = NULL;
 
@@ -42,7 +42,7 @@ static message_channel_t *get_message_channel(u64 eid, u8	type)
 	} else if (type == CHANNEL_TYPE_TX) {
 		channel = &tx_channel[eid];
 	} else
-		panic("Invalid channel type\n");
+		sbi_panic("Invalid channel type\n");
 	
 	return channel;
 }
@@ -60,7 +60,7 @@ static void start_message_channel(
 
 	if (channel->status != MESSAGE_CHANNEL_IDLE) {
 		sbi_error("channel already in use\n");
-        panic("Stall\n");
+        sbi_panic("Stall\n");
 		return;
 	}
 
@@ -77,7 +77,7 @@ static int copy_message(message_channel_t *channel, u64 rx_eid)
 	u64 satp = get_enclave_satp(rx_eid);
 	pte_t *page_table_root = (pte_t *) ((satp << 20) >> 8);
 	if (satp == 0)
-		panic("Message can only be copied when MMU is on\n");
+		sbi_panic("Message can only be copied when MMU is on\n");
 	// rx_paddr = get_pa(page_table_root, rx_vaddr);
 
 	vaddr_t rx_vaddr = channel->rx_vaddr, tx_vaddr = channel->tx_vaddr;
@@ -101,7 +101,7 @@ static int copy_message(message_channel_t *channel, u64 rx_eid)
 	if (!len)
 		return 0;
 	if (rx_vaddr % PAGE_SIZE)
-		panic("not aligned\n");
+		sbi_panic("not aligned\n");
 
 	while (len >= PAGE_SIZE) {
 		rx_paddr = get_pa(page_table_root, rx_vaddr);
@@ -157,7 +157,7 @@ static void finish_message_channel(
 	u64 rx_eid = (type == CHANNEL_TYPE_TX) ? HOST_EID : eid;
 	int ret = copy_message(channel, rx_eid);
 	if (ret)
-		panic("Message copy error\n");
+		sbi_panic("Message copy error\n");
 
 	reset_channel(channel);
 }
@@ -173,7 +173,7 @@ static int check_privilege_mode()
 
 		// LOG(get_current_eid());
 		// LOG(mpp);
-		// panic("Message channel cannot be started in U mode enclave\n");
+		// sbi_panic("Message channel cannot be started in U mode enclave\n");
 	}
 
 	return 0;

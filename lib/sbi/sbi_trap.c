@@ -22,6 +22,18 @@
 #include <sbi/sbi_scratch.h>
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_trap.h>
+#include <sbi/ebi/pmp.h>
+#include <sbi/ebi/region.h>
+#include <sbi/ebi/enclave.h>
+#include <sbi/ebi/memory_util.h>
+#include <sbi/ebi/ebi_debug.h>
+#include <sbi/ebi/eval.h>
+#include <sbi/ebi/eval_config.h>
+#include <sbi/sbi_system.h>
+#include <sbi/ebi/iomngr.h>
+#include <enclave/eid.h>
+#include <ebi_ecall.h>
+#include <sbi/sbi_ebi.h>
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
@@ -198,6 +210,66 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 	return 0;
 }
 
+int pmp_fault_handler(u64 eid, u64 mtval)
+{
+	ADD_COUNTER(lpmp, eid);
+    START_TIMER(lpmp, eid);
+
+    if (!mtval) {
+        LOG(csr_read(CSR_MEPC));
+        sbi_panic("Null pointer!\n");
+    }
+
+    void *pt_root = get_pt_root();
+    paddr_t pa = pt_root ? get_pa(pt_root, mtval) : mtval;
+
+    sbi_debug("vaddr (mtval) = 0x%lx, paddr = 0x%lx, count = %lu\n",
+        mtval, pa, GET_COUNTER_VALUE(lpmp, eid));
+
+    int ret = -1;
+    if (unlikely(!ebi_is_called())) {
+        sbi_error("Access fault before Coffer initialized\n");
+        LOG(pa);
+        pmp_dump();
+        return ret;
+    }
+
+    match_device_for_enclave(eid, pa);
+    ret = enclave_hit_region(eid, pa);
+    activate_lpmp(eid);
+
+    if (likely(tlb_cache)) {
+        // option 1: enable TLB cached PMP
+        asm volatile(
+	    	"sfence.vma	%0, zero	\n\t"
+	    	:
+	    	: "r"(mtval)
+	    );
+    } else {
+        // option 2: disable TLB cached PMP
+	    flush_tlb(); // important!
+    }
+
+    if (ret) {
+        pmp_dump();
+        LOG(eid);
+        LOG(pt_root);
+        LOG(pa);
+        sbi_error("Error: enclave should not access this pa\n");
+    }
+    if (eid == HOST_EID) {
+        LOG(mtval);
+        LOG(pt_root);
+        LOG(pa);
+        // sbi_error("Error: host should not access this pa\n");
+        sbi_panic("Error: host should not access this pa\n");
+    }
+
+    STOP_TIMER(lpmp, eid);
+
+    return ret;
+}
+
 static int sbi_trap_nonaia_irq(struct sbi_trap_regs *regs, ulong mcause)
 {
 	mcause &= ~(1UL << (__riscv_xlen - 1));
@@ -288,8 +360,13 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 
 	switch (mcause) {
 	case CAUSE_ILLEGAL_INSTRUCTION:
-		rc  = sbi_illegal_insn_handler(mtval, regs);
-		msg = "illegal instruction handler failed";
+		// if (regs->a7 == SBI_EXT_EBI) {
+		// 	rc = sbi_ebi_handler(regs);  // return non-zero if error
+		// 	msg = "ebi handler failed";
+		// } else {
+			rc  = sbi_illegal_insn_handler(mtval, regs);
+			msg = "illegal instruction handler failed";
+		// }
 		break;
 	case CAUSE_MISALIGNED_LOAD:
 		rc = sbi_misaligned_load_handler(mtval, mtval2, mtinst, regs);

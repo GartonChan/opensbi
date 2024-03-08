@@ -822,3 +822,14 @@ fw_fdt_bin:
 	.fill FW_FDT_PADDING, 1, 0
 #endif
 #endif
+
+	.section ".emod_manager","a",@progbits
+	.align 19
+	.globl _base_start, _base_end
+_base_start:
+#ifdef EMOD_MANAGER_BIN
+	.incbin EMOD_MANAGER_BIN
+#else
+# #error "EMOD_MANAGER_BIN not defined"
+#endif
+_base_end:

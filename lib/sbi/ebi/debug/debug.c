@@ -4,7 +4,7 @@
 __unused void sbi_assert(u64 val, char *assert_msg)
 {
 	if (!val)
-		panic(assert_msg);
+		sbi_panic(assert_msg);
 }
 
 // debug

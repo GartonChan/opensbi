@@ -156,13 +156,13 @@ static usize alloc_n_partitions(usize n, usize *suggestion)
     } else {
         if (!suggestion) {
             LOG(suggestion);
-            panic("invalid pointer\n");
+            sbi_panic("invalid pointer\n");
         }
         show(max_len);
         *suggestion = max_len;
         if (max_len == 0) {
             dump_partition_ownership();
-            panic("Stall\n");
+            sbi_panic("Stall\n");
         }
     }
 
@@ -313,7 +313,7 @@ __unused static usize expand_region(u64 eid, region_t *reg, usize n)
 // )
 // {
 // 	if (level > 2)
-// 		panic("invalid level\n");
+// 		sbi_panic("invalid level\n");
 
 // #define NUM_ENTRY_PER_TABLE	(PAGE_SIZE / sizeof(pte_t))
 // 	pte_t* root = (pte_t *)table_pa;
@@ -418,7 +418,7 @@ __unused static usize expand_region(u64 eid, region_t *reg, usize n)
 //             }
 //         }
 //         if (tmp == -1) {
-//             panic("Error: No space for compaction!\n");
+//             sbi_panic("Error: No space for compaction!\n");
 //         }
 
 //         region_migration(x_owner, x, tmp, 1);
@@ -594,14 +594,14 @@ paddr_t alloc_partitions_for_enclave(
         LOG(number_of_partitions);
         LOG(avail_count);
         LOG(NUM_PARTITIONS);
-        panic("Out of Memory\n");
+        sbi_panic("Out of Memory\n");
     }
 
     show(number_of_partitions);
     show(avail_count);
 
     if (eid == HOST_EID) {
-        panic("Error: Not supporting alloction for host OS\n");
+        sbi_panic("Error: Not supporting alloction for host OS\n");
     }
 
     lock_region();
@@ -678,8 +678,8 @@ void clear_entire_pool()
 int init_partition_pool(void)
 {
     sbi_memset(enclave_partition_pool, -1, sizeof(enclave_partition_pool));
-    SPIN_LOCK_INIT(&memory_pool_lock);
-    SPIN_LOCK_INIT(&compaction_lock);
+    SPIN_LOCK_INIT(memory_pool_lock);
+    SPIN_LOCK_INIT(compaction_lock);
 
     region_init();
     return 0;

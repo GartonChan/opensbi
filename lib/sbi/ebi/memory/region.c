@@ -34,7 +34,7 @@ static region_t *alloc_new_region()
 		}
 	}
 
-	panic("Out of region source\n");
+	sbi_panic("Out of region source\n");
 	return NULL;
 }
 
@@ -63,7 +63,7 @@ region_info_t get_smallest_region(u64 eid)
 	}
 
 	if (min == -1UL) {
-		panic("Enclave owns no region\n");
+		sbi_panic("Enclave owns no region\n");
 	}
 
 	ret.pa = pa;
@@ -234,7 +234,7 @@ int enclave_hit_region(u64 eid, paddr_t pa)
 
 void region_init()
 {
-	SPIN_LOCK_INIT(&region_lock);
+	SPIN_LOCK_INIT(region_lock);
 	for (int i = 0; i < NUM_ENCLAVE + 1; i++) {
 		enclave_region_t *enc_reg = get_enclave_regions(i);
 		SBI_INIT_LIST_HEAD(&enc_reg->reg_list);
@@ -280,7 +280,7 @@ __unused void __dump_region_list(u64 eid)
 		i++;
 		size += cur->size;
 		if (i > enc_reg->count) {
-			panic("Exceed max num");
+			sbi_panic("Exceed max num");
 		}
 	}
 	sbi_printf("Total size: 0x%lx\n", size);

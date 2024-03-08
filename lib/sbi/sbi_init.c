@@ -29,6 +29,7 @@
 #include <sbi/sbi_timer.h>
 #include <sbi/sbi_tlb.h>
 #include <sbi/sbi_version.h>
+#include <sbi/ebi/sm.h>
 
 #define BANNER                                              \
 	"   ____                    _____ ____ _____\n"     \
@@ -368,6 +369,13 @@ static void __noreturn init_coldboot(struct sbi_scratch *scratch, u32 hartid)
 			   __func__, rc);
 		sbi_hart_hang();
 	}
+
+	/* Initialize Security Module */
+    rc = init_sm();
+    if (rc) {
+        sbi_printf("%s: sm init failed (error %d)\n", __func__, rc);
+        sbi_hart_hang();
+    }
 
 	/*
 	 * Note: Platform final initialization should be after finalizing

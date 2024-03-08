@@ -63,7 +63,7 @@ static bool is_power_of_two(u64 num)
 __unused static int napot_power(paddr_t pa, usize size)
 {
 	if (is_power_of_two(size) && (pa % size == 0))
-		return __ffs(size);
+		return sbi_ffs(size);
 	return -1;
 }
 
@@ -87,7 +87,7 @@ __unused void __pmp_dump(void)
     for (i = 0; i < max_pmp; i++) {
         rc = pmp_get(i, &prot, &addr, &log2len);
         if (rc) {
-            panic("PMP info read error!\n");
+            sbi_panic("PMP info read error!\n");
         }
 		char *pmpmode = ((prot & PMP_A) == 0) 			? "Off" : 
 						((prot & PMP_A) == PMP_A_NA4) 	? "NA4" :
@@ -203,7 +203,7 @@ __unused static void __activate_enclave_pmp(enclave_region_t *enc_reg, int pmp_c
 
     if (inst_reg_count < NUM_INST_REG) {
         LOG(inst_reg_count); LOG(NUM_INST_REG);
-        panic("No enough instruction region to fill i-vPMP\n");
+        sbi_panic("No enough instruction region to fill i-vPMP\n");
     }
 
     sbi_list_for_each_entry(cur, &enc_reg->reg_list, entry) {

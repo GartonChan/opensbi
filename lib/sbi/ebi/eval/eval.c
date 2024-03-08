@@ -64,7 +64,7 @@ u64 get_timer(u64 eid, u64 timer)
 		ret = GET_COUNTER_VALUE(mem_migration, eid);
 		break;
 	default:
-		panic("Unknown timer\n");
+		sbi_panic("Unknown timer\n");
 		break;
 	}
 	return ret;

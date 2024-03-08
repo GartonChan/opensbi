@@ -13,7 +13,7 @@
 
 #define EBI_DEFINE_IPI_EVENT(event_name)                              \
     static uint32_t ipi_ebi_##event_name##_event = SBI_IPI_EVENT_MAX; \
-    static void process_ipi_ebi_##event_name(struct sbi_scratch* scratch, struct sbi_trap_regs* regs)
+    static void process_ipi_ebi_##event_name(struct sbi_scratch* scratch)
 
 #define EBI_DEFINE_IPI_OPS(ops_name, event_name)                   \
     static struct sbi_ipi_event_ops ipi_ebi_##event_name##_ops = { \
@@ -72,10 +72,10 @@ EBI_DEFINE_IPI_EVENT(log_pc)
     __unused u64 now = csr_read(time);
 
     if (now > compare && now - compare > 5000000UL) {
-        __unused u64 mstatus = regs->mstatus;
-        __unused u64 mepc = regs->mepc;
+        // __unused u64 mstatus = regs->mstatus;
+        // __unused u64 mepc = regs->mepc;
         __unused u64 mcause = csr_read(CSR_MCAUSE);
-        __unused u64 mpp = (mstatus & MSTATUS_MPP) >> MSTATUS_MPP_SHIFT;
+        // __unused u64 mpp = (mstatus & MSTATUS_MPP) >> MSTATUS_MPP_SHIFT;
 
         __unused u64 sepc = csr_read(CSR_SEPC);
         __unused u64 satp = csr_read(CSR_SATP);
@@ -84,9 +84,9 @@ EBI_DEFINE_IPI_EVENT(log_pc)
         __unused u64 eid = get_current_eid();
 
         LOG(eid);
-        LOG(mepc);
-        LOG(mpp);
-        LOG(mstatus);
+        // LOG(mepc);
+        // LOG(mpp);
+        // LOG(mstatus);
         LOG(mcause);
         LOG(sepc);
         LOG(satp);

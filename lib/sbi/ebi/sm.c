@@ -6,6 +6,8 @@
 #include <sbi/ebi/partition_pool.h>
 #include <sbi/ebi/iomngr.h>
 
+extern struct sbi_ecall_extension ecall_ebi;
+
 int init_sm()
 {
 	int rc;

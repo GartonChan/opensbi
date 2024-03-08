@@ -228,6 +228,7 @@ int sbi_trap_redirect(struct sbi_trap_regs *regs,
 		      struct sbi_trap_info *trap);
 
 struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs);
+int pmp_fault_handler(u64 eid, u64 mtval);
 
 void __noreturn sbi_trap_exit(const struct sbi_trap_regs *regs);
 

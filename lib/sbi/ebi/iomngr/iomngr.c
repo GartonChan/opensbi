@@ -132,14 +132,14 @@ void device_update_permission(u64 eid)
     volatile device_t* d;
     if (eid != get_current_eid()) {
         show(eid);
-        panic("Cannot update device permission for offline enclave!\n");
+        sbi_panic("Cannot update device permission for offline enclave!\n");
     }
     d = enc_holding_device[eid];
     if (d) {
         sbi_debug("Enc #%lu holding device #%lu\n", eid, d->id);
         // sbi_DEBUG("Device #%lu holder #%lu\n", d->id, d->holder);
         if (d->holder != eid) {
-            panic("EID not match!\n");
+            sbi_panic("EID not match!\n");
         }
     }
 }
@@ -223,7 +223,7 @@ int init_device(void)
             return rc;
     }
 
-    SPIN_LOCK_INIT(&device_lock);
+    SPIN_LOCK_INIT(device_lock);
     return rc;
 }
 

@@ -1,5 +1,4 @@
 #include "memory/page_table.h"
-#include "sys/cdefs.h"
 #include <enclave/eid.h>
 #include <sbi/ebi/ebi_debug.h>
 #include <sbi/ebi/memory_util.h>
@@ -46,7 +45,7 @@ int copy_from_user_not_aligned(
 
         if (_.cause) {
             sbi_error("Copy failed at 0x%lx, cause = 0x%lx\n", maddr, _.cause);
-            panic("Stall\n");
+            sbi_panic("Stall\n");
             return -1;
         }
     }
@@ -84,7 +83,7 @@ int copy_from_user(
         if (_.cause) {
             sbi_error("Copy failed maddr=0x%lx, uaddr=0x%lx, cause = 0x%lx\n",
                 maddr, uaddr, _.cause);
-            panic("Stall\n");
+            sbi_panic("Stall\n");
             return -1;
         }
     }
@@ -131,13 +130,13 @@ int copy_from_user_to_user(
         if (trap1.cause) {
             sbi_error("Load failed src_uaddr=0x%lx, cause = 0x%lx\n",
                 src_uaddr, trap1.cause);
-            panic("Stall\n");
+            sbi_panic("Stall\n");
             __builtin_unreachable();
         }
         if (trap2.cause) {
             sbi_error("Store failed dst_uaddr=0x%lx, cause = 0x%lx\n",
                 dst_uaddr, trap2.cause);
-            panic("Stall\n");
+            sbi_panic("Stall\n");
             __builtin_unreachable();
         }
     }

@@ -28,9 +28,11 @@
 #error "Unexpected __riscv_xlen"
 #endif
 
+#ifndef MEMORY_MEMORY_H  // prevent redefinition 
 #define PAGE_SHIFT	(12)
 #define PAGE_SIZE	(_AC(1, UL) << PAGE_SHIFT)
 #define PAGE_MASK	(~(PAGE_SIZE - 1))
+#endif
 
 #define REG_L		__REG_SEL(ld, lw)
 #define REG_S		__REG_SEL(sd, sw)
