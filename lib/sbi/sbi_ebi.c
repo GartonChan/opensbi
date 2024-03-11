@@ -145,7 +145,7 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
     case SBI_EXT_EVAL_GET_TIMER:
         if (eid != HOST_EID)
             sbi_panic("Cannot get timer in enclaves\n");
-        ret = get_timer(regs->a0, regs->a1);
+        regs->a0 = get_timer(regs->a0, regs->a1);
         break;
 
     case SBI_EXT_EVAL_CONFIG:
@@ -162,20 +162,20 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
         break;
 
     case SBI_EXT_EBI_GET_EID:
-        ret = (u64)get_current_eid();
+        regs->a0 = (u64)get_current_eid();
         break;
     
     case SBI_EXT_EBI_GET_TID:
-        ret = (u64)get_current_tid();
+        regs->a0 = (u64)get_current_tid();
         break;
     
     case SBI_EXT_EBI_GET_HARTID:
-        ret = (u64)current_hartid();
+        regs->a0 = (u64)current_hartid();
         break;
 
     case SBI_EXT_EBI_GET_BLOCKED_THREADS:
         sbi_debug("SBI_EXT_EBI_GET_BLOCKED_THREADS\n");
-        ret = get_blocked_threads(eid);
+        regs->a0 = get_blocked_threads(eid);
         break;
     
     case SBI_EXT_EBI_SET_CLEAR_CHILD_TID:
@@ -184,22 +184,22 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
 
     case SBI_EXT_EBI_GET_CLEAR_CHILD_TID:
         sbi_debug("SBI_EXT_EBI_GET_CLEAR_CHILD_TID\n");
-        ret = get_clear_child_tid(eid, get_current_tid());
+        regs->a0 = get_clear_child_tid(eid, get_current_tid());
         break;
     
     case SBI_EXT_EBI_GET_ALIVE_COUNT:
-        ret = (u64)get_alive_count();
+        regs->a0 = (u64)get_alive_count();
         break;
 
     case SBI_EXT_EBI_GET_STATUS:
-        if (regs->a0 == 0 || regs->a0 > NUM_ENCLAVE)
-            ret = 0;
+        if (regs->a0 == 0 && regs->a0 > NUM_ENCLAVE)
+            regs->a0 = 0;
         else 
-            ret = (u64)get_enclave_status(regs->a0);
+            regs->a0 = (u64)get_enclave_status(regs->a0);
         break;
 
     case SBI_EXT_GET_EID_COUND:
-        ret = get_eid_count();
+        regs->a0 = get_eid_count();
         break;
 
     case SBI_EXT_EBI_RESET:
@@ -212,12 +212,6 @@ int sbi_ebi_handler(struct sbi_trap_regs *regs)
 	}
 
     regs->mepc -= 4;
-    
-    /* Only pass valid return value to regs->a0 */
-    if (ret >= 0) {
-		regs->a0 = ret;  
-		ret = 0;
-	}
 
     return ret;  // return ErrorCode (negative) when errors occur
 }

@@ -6,12 +6,15 @@
 # Authors:
 #   Anup Patel <anup.patel@wdc.com>
 #
+EMOD_MANAGER_BIN = ../build/emodules/emod_manager/emod_manager.bin
 
 firmware-genflags-y =
 firmware-cppflags-y +=
 firmware-cflags-y +=
 firmware-asflags-y +=
 firmware-ldflags-y +=
+
+firmware-genflags-y += -DEMOD_MANAGER_BIN=\"$(EMOD_MANAGER_BIN)\"
 
 ifndef FW_PIC
 FW_PIC := $(OPENSBI_LD_PIE)

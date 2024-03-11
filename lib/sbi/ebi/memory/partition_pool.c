@@ -688,7 +688,7 @@ int init_partition_pool(void)
 __unused void stop_other_harts()
 {
     spin_lock(&compaction_lock);
-    ipi_send_ebi_wait_for_compaction(-1);
+    // ipi_send_ebi_wait_for_compaction(-1);
 }
 
 __unused void resume_other_harts()

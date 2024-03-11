@@ -360,9 +360,17 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 
 	switch (mcause) {
 	case CAUSE_ILLEGAL_INSTRUCTION:
-		if (CONFIG_SBI_EBI && regs->a7 == SBI_EXT_EBI) {
+		unsigned long extid = regs->a7;
+		unsigned long funcid = regs->a6;
+		// todo: check the psuedo instruction at mepc
+		if (CONFIG_SBI_EBI && extid == SBI_EXT_EBI) {
 			rc = sbi_ebi_handler(regs);  // return non-zero if error
 			msg = "ebi handler failed";
+			regs->mepc += 4; // debug for create!
+			// sbi_DEBUG("EBI Handled.\n");
+			// show(rc);
+			if (funcid == SBI_EXT_EBI_SUSPEND)
+				show(regs->mepc);
 		} else {
 			rc  = sbi_illegal_insn_handler(mtval, regs);
 			msg = "illegal instruction handler failed";

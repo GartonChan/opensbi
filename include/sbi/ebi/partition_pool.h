@@ -6,7 +6,8 @@
 #include <util/gnu_attribute.h>
 
 #if defined __QEMU__
-#define POOL_SIZE   0x104000000UL
+// #define POOL_SIZE   0x104000000UL
+#define POOL_SIZE   0x040000000UL
 #elif defined __UNMATCHED__
 #define POOL_SIZE   0x200000000UL
 #elif defined __VISIONFIVE2__

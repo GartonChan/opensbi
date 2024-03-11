@@ -830,6 +830,6 @@ _base_start:
 #ifdef EMOD_MANAGER_BIN
 	.incbin EMOD_MANAGER_BIN
 #else
-# #error "EMOD_MANAGER_BIN not defined"
+#error "EMOD_MANAGER_BIN not defined"
 #endif
 _base_end:
