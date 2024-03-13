@@ -352,11 +352,6 @@ endif
 
 
 CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-stack-protector -fno-strict-aliasing
-ifneq ($(DEBUG),)
-CFLAGS		+=	-O0
-else
-CFLAGS		+=	-O2
-endif
 CFLAGS		+=	-fno-omit-frame-pointer -fno-optimize-sibling-calls
 # Optionally supported flags
 ifeq ($(CC_SUPPORT_SAVE_RESTORE),y)

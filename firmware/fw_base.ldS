@@ -50,7 +50,6 @@
 		*(.rela*)
 		PROVIDE(__rel_dyn_end = .);
 	}
-
 	PROVIDE(_rodata_end = .);
 
 	/* End of the read-only data sections */
@@ -59,7 +58,7 @@
 	 * PMP regions must be to be power-of-2. RX/RW will have separate
 	 * regions, so ensure that the split is power-of-2.
 	 */
-	. = ALIGN(1 << LOG2CEIL((SIZEOF(.rodata) + SIZEOF(.text)
+	. = ALIGN(2 << LOG2CEIL((SIZEOF(.rodata) + SIZEOF(.text)
 				+ SIZEOF(.dynsym) + SIZEOF(.rela.dyn))));
 
 	PROVIDE(_fw_rw_start = .);
