@@ -7,11 +7,13 @@
 
 #if defined __QEMU__
 // #define POOL_SIZE   0x104000000UL
-#define POOL_SIZE   0x040000000UL
+#define POOL_SIZE   0x080000000UL
 #elif defined __UNMATCHED__
-#define POOL_SIZE   0x200000000UL
+// #define POOL_SIZE   0x200000000UL
+#define POOL_SIZE   0x080000000UL
 #elif defined __VISIONFIVE2__
-#define POOL_SIZE   0x200000000UL
+// #define POOL_SIZE   0x100000000UL
+#define POOL_SIZE   0x080000000UL
 #else
 #error "Unknown Platform"
 #endif

@@ -7,6 +7,7 @@
  *   Anup Patel <anup.patel@wdc.com>
  */
 
+#include "sbi/sbi_ebi.h"
 #include <sbi/riscv_asm.h>
 #include <sbi/riscv_barrier.h>
 #include <sbi/riscv_encoding.h>
@@ -112,7 +113,7 @@ static const illegal_insn_func illegal_insn_table[32] = {
 	truly_illegal_insn, /* 6 */
 	truly_illegal_insn, /* 7 */
 	truly_illegal_insn, /* 8 */
-	truly_illegal_insn, /* 9 */
+	sbi_ebi_handler, /* 9 */
 	truly_illegal_insn, /* 10 */
 	truly_illegal_insn, /* 11 */
 	truly_illegal_insn, /* 12 */
@@ -151,7 +152,7 @@ int sbi_illegal_insn_handler(ulong insn, struct sbi_trap_regs *regs)
 	 * the case where MTVAL CSR contains instruction address for illegal
 	 * instruction trap.
 	 */
-
+	// sbi_printf("illegal_insn = %lx\n", insn);
 	sbi_pmu_ctr_incr_fw(SBI_PMU_FW_ILLEGAL_INSN);
 	if (unlikely((insn & 3) != 3)) {
 		insn = sbi_get_insn(regs->mepc, &uptrap);

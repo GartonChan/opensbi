@@ -97,9 +97,9 @@ typedef struct {
 static enclave_desc_t		enclave_desc[NUM_ENCLAVE + 1];	// enclave descriptor
 static enclave_desc_t		host_desc[NUM_CORES + 1];		// enclave descriptor for host
 static enclave_context_t	enclave_ctx[NUM_ENCLAVE + 1][NUM_THREADS];	// enclave context. 0th not used
-static enclave_context_t	host_ctx[NUM_CORES];			// host context. one for each core
-static u64					hartid_to_eid[NUM_CORES];		// a table of eid
-static u64					hartid_to_tid[NUM_CORES];		// a table of tid
+static enclave_context_t	host_ctx[NUM_CORES + 1];			// host context. one for each core
+static u64					hartid_to_eid[NUM_CORES + 1];		// a table of eid
+static u64					hartid_to_tid[NUM_CORES + 1];		// a table of tid
 static spinlock_t 			eid_table_lock;
 static spinlock_t 			tid_table_lock;
 static u64 					eid_count = 1;
@@ -144,12 +144,17 @@ void init_enclave_desc()
 			.eid 	= HOST_EID,
 			.hartid = i
 		};
+		hartid_to_eid[i] = 0UL;
+		hartid_to_tid[i] = 0UL;
 		SPIN_LOCK_INIT(host_desc[i].lock);
 	}
 
 	// ATOMIC_INIT(&num_initializing, 0);
 	SPIN_LOCK_INIT(eid_table_lock);
 	SPIN_LOCK_INIT(tid_table_lock);
+
+	// show(&hartid_to_eid[0]);
+	// show(&hartid_to_tid[0]);
 }
 
 static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
@@ -162,6 +167,8 @@ static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
 	} else {
 		if (eid > NUM_ENCLAVE)
 			sbi_panic("Invalid eid\n");
+		if (tid >= NUM_THREADS)
+			sbi_panic("Invalid tid\n");
 		// sbi_debug("enclave 0x%lx context\n", eid);
 		// show(eid);
 		return &enclave_ctx[eid][tid];

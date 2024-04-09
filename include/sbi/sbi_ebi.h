@@ -4,6 +4,6 @@
 #include <sbi/sbi_types.h>
 #include <sbi/ebi/enclave.h>
 
-int sbi_ebi_handler(struct sbi_trap_regs *regs);
+int sbi_ebi_handler(u64 insn, struct sbi_trap_regs *regs);
 
 #endif

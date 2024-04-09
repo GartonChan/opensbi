@@ -156,6 +156,8 @@ device_t uart = {
     .pa_start = 0x10000000,
 #elif defined __UNMATCHED__
     .pa_start = 0x10011000,
+#elif defined __VISIONFIVE2__
+    .pa_start = 0x10000000,
 #else
 #error "unknown platform"
 #endif
@@ -167,6 +169,10 @@ device_t timer = {
     .pa_start = 0x101000UL,
     .size = 0x1000,
 #elif defined __UNMATCHED__
+    .pa_start = 0x200B000UL,
+    .size = 0x1000,
+    .sharable = false,
+#elif defined __VISIONFIVE2__
     .pa_start = 0x200B000UL,
     .size = 0x1000,
     .sharable = false,
@@ -183,6 +189,9 @@ device_t pcie_ecam = {
 #elif defined __UNMATCHED__
     .pa_start = 0,
     .size = 0,
+#elif defined __VISIONFIVE2__
+    .pa_start = 0,
+    .size = 0,
 #else
 #error "unknown platform"
 #endif
@@ -193,6 +202,9 @@ device_t pcie_pio = {
     .pa_start = 0x3000000,
     .size = 0x10000,
 #elif defined __UNMATCHED__
+    .pa_start = 0,
+    .size = 0,
+#elif defined __VISIONFIVE2__
     .pa_start = 0,
     .size = 0,
 #else

@@ -142,20 +142,20 @@ static int set_pmp(int index, paddr_t pa, usize size)
 		return ret;
     // ------------------------------------
 
-    // int pow = napot_power(pa, size);
-    // if (pow != -1) {    // NAPOT
-    //     if (index < 0)
-    //         return ret;
-    //     u64 napot_addr = pa | ((1UL << (pow - 1)) - 1);
-    //     PMP_SET_IDX(index, napot_addr, PMP_ENABLE, NAPOT);
-    //     ret = 1;
-    // } else {            // TOR
+    int pow = napot_power(pa, size);
+    if (pow != -1) {    // NAPOT
+        if (index < 0)
+            return ret;
+        u64 napot_addr = pa | ((1UL << (pow - 1)) - 1);
+        PMP_SET_IDX(index, napot_addr, PMP_ENABLE, NAPOT);
+        ret = 1;
+    } else {            // TOR
         if (index < 2)
             return ret;
 		PMP_SET_IDX(index - 1, pa, PMP_ENABLE, OFF);
 		PMP_SET_IDX(index, pa + size, PMP_ENABLE, TOR);
         ret = 2;
-    // }
+    }
 
     return ret;
 }

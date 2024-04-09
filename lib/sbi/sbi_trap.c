@@ -34,6 +34,7 @@
 #include <enclave/eid.h>
 #include <ebi_ecall.h>
 #include <sbi/sbi_ebi.h>
+#include <sbi/sbi_types.h>
 
 static void __noreturn sbi_trap_error(const char *msg, int rc,
 				      ulong mcause, ulong mtval, ulong mtval2,
@@ -339,6 +340,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 	ulong mcause = csr_read(CSR_MCAUSE);
 	ulong mtval = csr_read(CSR_MTVAL), mtval2 = 0, mtinst = 0;
 	struct sbi_trap_info trap;
+	usize eid = get_current_eid();
 
 	if (misa_extension('H')) {
 		mtval2 = csr_read(CSR_MTVAL2);
@@ -360,16 +362,14 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 
 	switch (mcause) {
 	case CAUSE_ILLEGAL_INSTRUCTION:
-		unsigned long extid = regs->a7;
 		// todo: check the psuedo instruction at mepc
-		if (CONFIG_SBI_EBI && extid == SBI_EXT_EBI) {
-			rc = sbi_ebi_handler(regs);  // return non-zero if error
-			msg = "ebi handler failed";
-			regs->mepc += 4;
-		} else {
-			rc  = sbi_illegal_insn_handler(mtval, regs);
-			msg = "illegal instruction handler failed";
-		}
+		// if (CONFIG_SBI_EBI && extid == SBI_EXT_EBI) {
+		// 	rc = sbi_ebi_handler(regs);  // return non-zero if error
+		// 	msg = "ebi handler failed";
+		// } else {
+		rc  = sbi_illegal_insn_handler(mtval, regs);
+		msg = "illegal instruction handler failed";
+		// }
 		break;
 	case CAUSE_MISALIGNED_LOAD:
 		rc = sbi_misaligned_load_handler(mtval, mtval2, mtinst, regs);
@@ -388,6 +388,10 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 	case CAUSE_STORE_ACCESS:
 		sbi_pmu_ctr_incr_fw(mcause == CAUSE_LOAD_ACCESS ?
 			SBI_PMU_FW_ACCESS_LOAD : SBI_PMU_FW_ACCESS_STORE);
+	case CAUSE_FETCH_ACCESS:
+        rc = pmp_fault_handler(eid, mtval);
+		msg = "access fault (PMP)";
+		break;
 		/* fallthrough */
 	default:
 		/* If the trap came from S or U mode, redirect it there */

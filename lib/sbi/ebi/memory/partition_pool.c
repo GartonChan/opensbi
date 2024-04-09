@@ -1,3 +1,4 @@
+#include "sbi/sbi_console.h"
 #include <enclave/eid.h>
 #include <memory/page_table.h>
 #include <sbi/ebi/ebi_debug.h>
@@ -30,7 +31,7 @@ static const paddr_t base = 0x240000000UL; // TODO tmp
 #elif defined __UNMATCHED__
 static const paddr_t base = 0x240000000UL; // TODO tmp
 #elif defined __VISIONFIVE2__
-static const paddr_t base = 0x240000000UL; // TODO tmp
+static const paddr_t base = 0x140000000UL; // TODO tmp
 #else
 #error "unknown arch"
 #endif
@@ -121,10 +122,10 @@ static usize alloc_n_partitions(usize n, usize *suggestion)
             if (scanning_free) {
                 len = i - head;
                 scanning_free = false;
-                sbi_debug("len updated: len = %lu, head = %lu\n", len, head);
+                // sbi_debug("len updated: len = %lu, head = %lu\n", len, head);
 
                 if (max_len < len) {
-                    sbi_debug("max len updated\n");
+                    // sbi_debug("max len updated\n");
                     max_len = len;
                     max_idx = head;
                 }
@@ -133,7 +134,7 @@ static usize alloc_n_partitions(usize n, usize *suggestion)
             if (!scanning_free) {
                 head = i;
                 scanning_free = true;
-                sbi_debug("start to scan free, head = %lu\n", head);
+                // sbi_debug("start to scan free, head = %lu\n", head);
             }
         }
     }
@@ -677,6 +678,8 @@ void clear_entire_pool()
 
 int init_partition_pool(void)
 {
+    show(&enclave_partition_pool[0]);
+    show(sizeof(enclave_partition_pool));
     sbi_memset(enclave_partition_pool, -1, sizeof(enclave_partition_pool));
     SPIN_LOCK_INIT(memory_pool_lock);
     SPIN_LOCK_INIT(compaction_lock);

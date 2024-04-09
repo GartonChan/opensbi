@@ -1,3 +1,4 @@
+#include "memory/page_table.h"
 #include <enclave/eid.h>
 #include <sbi/sbi_system.h>
 #include <sbi/ebi/partition_pool.h>
