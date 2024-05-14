@@ -4,6 +4,7 @@
 #include "sbi/sbi_bitmap.h"
 #include "sbi/sbi_bitops.h"
 #include "sbi/sbi_trap.h"
+#include "sbi/sbi_timer.h"
 #include <assert.h>
 #include <enclave/eid.h>
 #include <memory/memory.h>
@@ -1185,7 +1186,7 @@ static int __sys_vfork_handler(struct sbi_trap_regs* regs)
 
 	// what does it do here?
     regs->a0 = NEW_THREAD | (u32)c_tid;
-    regs->mepc -= 4;
+    // regs->mepc -= 4;
 
 	// block the parent thread after vfork a child.
 	u64 *blocked_threads = &(enclave_desc[eid].blocked_threads);
@@ -1239,11 +1240,6 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
 	show(c_tls);
     show(regs->tp);
 
-	if (flags == 0x11UL) {
-		sbi_printf("sys_vfork_handler() is called\n");
-		return __sys_vfork_handler(regs);
-	}
-
 	__unused u64 mpp = get_current_mpp();
 	show(mpp);
 	show(csr_read(CSR_MEPC));
@@ -1268,6 +1264,9 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
     enclave_desc[eid].clear_child_tid[c_tid] = child_tid_ptr;
     if ((alive_threads & ~(1 << p_tid)) == 0)
         __set_enclave_status(eid, ENCLAVE_IDLE);
+	
+	// ! before this line regs belong to parent thread.
+	// ! afterwards regs belong to the host.
     __enclave_switch(eid, p_tid,
         HOST_EID, 0UL, regs);
 
@@ -1289,7 +1288,7 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
     show(c_context->mepc);
 
     regs->a0 = NEW_THREAD | (u32)c_tid;
-    regs->mepc -= 4;
+    // host: regs->mepc does not have to change.
 
 out:
 	spin_unlock_enclave(eid);
@@ -1437,6 +1436,7 @@ int ebi_exit_handler(struct sbi_trap_regs* regs)
 		STOP_TIMER(total, current_eid);
 	}
 	sbi_debug("ebi_exit_handler finished\n");	
+	// dump_timer(current_eid);
 	spin_unlock_enclave(current_eid);
 	return 0;
 }

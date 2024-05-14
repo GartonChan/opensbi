@@ -1,4 +1,6 @@
 #include "sbi/sbi_console.h"
+#include "sbi/sbi_timer.h"
+#include "util/register.h"
 #include <enclave/eid.h>
 #include <memory/page_table.h>
 #include <sbi/ebi/ebi_debug.h>
@@ -31,7 +33,7 @@ static const paddr_t base = 0x240000000UL; // TODO tmp
 #elif defined __UNMATCHED__
 static const paddr_t base = 0x240000000UL; // TODO tmp
 #elif defined __VISIONFIVE2__
-static const paddr_t base = 0x140000000UL; // TODO tmp
+static const paddr_t base = 0x1c0000000UL; // TODO tmp
 #else
 #error "unknown arch"
 #endif
@@ -671,6 +673,13 @@ void clear_entire_pool()
 {
     stop_other_harts();
     sbi_warn("Cleaning: base = 0x%lx, size = 0x%lx\n", base, POOL_SIZE);
+
+    // start timer
+    LOG(read_csr(cycle));
+    sbi_memset((void *)base, 1, 1472);
+    // stop timer
+    LOG(read_csr(cycle));
+
     sbi_memset((void *)base, 0, POOL_SIZE);
     smp_mb();
     resume_other_harts();
