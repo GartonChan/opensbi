@@ -39,17 +39,6 @@ int sbi_ebi_handler(u64 insn, struct sbi_trap_regs *regs)
         ipi_send_ebi_postboot_init(-1);
         ebi_called = true;
     }
-
-    // debug
-    // if (funcid != SBI_EXT_EBI_GET_EID 
-    //     && funcid != SBI_EXT_EBI_GET_TID
-    //     && funcid != SBI_EXT_EBI_GET_HARTID)
-    // {
-    //     // LOG(eid); LOG(tid);
-    //     LOG(regs->mepc);
-    //     LOG(insn);
-    //     LOG(funcid);
-    // }
     
     regs->mepc += 4;
 

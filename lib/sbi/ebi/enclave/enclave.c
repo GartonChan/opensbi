@@ -154,8 +154,6 @@ void init_enclave_desc()
 	SPIN_LOCK_INIT(eid_table_lock);
 	SPIN_LOCK_INIT(tid_table_lock);
 
-	// show(&hartid_to_eid[0]);
-	// show(&hartid_to_tid[0]);
 }
 
 static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
@@ -163,15 +161,12 @@ static enclave_context_t *get_context_by_eid_tid(u64 eid, u64 tid)
 	if (eid == HOST_EID) {
 		// sbi_debug("host os context\n");
 		u32 hart_id = current_hartid();
- 		// show(hart_id);
 		return &host_ctx[hart_id];
 	} else {
 		if (eid > NUM_ENCLAVE)
 			sbi_panic("Invalid eid\n");
 		if (tid >= NUM_THREADS)
 			sbi_panic("Invalid tid\n");
-		// sbi_debug("enclave 0x%lx context\n", eid);
-		// show(eid);
 		return &enclave_ctx[eid][tid];
 	}
 }
@@ -949,7 +944,6 @@ static load_info_t enter_enclave(
 	umode_arg_addr = PAGE_UP(
 		umode_payload_pa_start + umode_payload_size
 	);
-	// show(umode_arg_addr);
 
 	u64 *host_argv_pointer = (u64 *)argv;
 	u8	*enclave_arg_ptr = (u8 *)(umode_arg_addr + sizeof(u64) * argc);

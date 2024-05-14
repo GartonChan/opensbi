@@ -674,12 +674,6 @@ void clear_entire_pool()
     stop_other_harts();
     sbi_warn("Cleaning: base = 0x%lx, size = 0x%lx\n", base, POOL_SIZE);
 
-    // start timer
-    LOG(read_csr(cycle));
-    sbi_memset((void *)base, 1, 1472);
-    // stop timer
-    LOG(read_csr(cycle));
-
     sbi_memset((void *)base, 0, POOL_SIZE);
     smp_mb();
     resume_other_harts();
