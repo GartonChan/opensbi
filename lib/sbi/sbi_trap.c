@@ -388,11 +388,18 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 	case CAUSE_STORE_ACCESS:
 		sbi_pmu_ctr_incr_fw(mcause == CAUSE_LOAD_ACCESS ?
 			SBI_PMU_FW_ACCESS_LOAD : SBI_PMU_FW_ACCESS_STORE);
+		/* fallthrough */
 	case CAUSE_FETCH_ACCESS:
         rc = pmp_fault_handler(eid, mtval);
 		msg = "access fault (PMP)";
 		break;
-		/* fallthrough */
+	case CAUSE_USER_ECALL:
+		// handle the clone syscall (220)
+		if (unlikely(regs->a7 == 220)) {
+			rc = sys_clone_handler(regs);
+			msg = "clone syscall handler failed";
+			break;
+		}
 	default:
 		/* If the trap came from S or U mode, redirect it there */
 		trap.epc = regs->mepc;

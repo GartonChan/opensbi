@@ -316,6 +316,18 @@ else
 	install_docs_path=share/opensbi/docs
 endif
 
+ifeq (y, $(DEBUG))
+GENFLAGS	+=	-D__SBI_DEBUG__
+endif
+
+ifeq ($(TARGET_PLATFORM), qemu)
+GENFLAGS += -D__QEMU__
+else ifeq ($(TARGET_PLATFORM), unmatched)
+GENFLAGS += -D__UNMATCHED__
+else ifeq ($(TARGET_PLATFORM), visionfive2)
+GENFLAGS += -D__VISIONFIVE2__
+endif
+
 # Setup compilation commands flags
 GENFLAGS	+=	-I$(platform_src_dir)/include
 GENFLAGS	+=	-I$(include_dir)
@@ -337,19 +349,6 @@ endif
 GENFLAGS	+=	$(libsbiutils-genflags-y)
 GENFLAGS	+=	$(platform-genflags-y)
 GENFLAGS	+=	$(firmware-genflags-y)
-
-ifeq (y, $(DEBUG))
-GENFLAGS	+=	-D__SBI_DEBUG__
-endif
-
-ifeq ($(TARGET_PLATFORM), qemu)
-GENFLAGS += -D__QEMU__
-else ifeq ($(TARGET_PLATFORM), unmatched)
-GENFLAGS += -D__UNMATCHED__
-else ifeq ($(TARGET_PLATFORM), visionfive2)
-GENFLAGS += -D__VISIONFIVE2__
-endif
-
 
 CFLAGS		=	-g -Wall -Werror -ffreestanding -nostdlib -fno-stack-protector -fno-strict-aliasing
 CFLAGS		+=	-fno-omit-frame-pointer -fno-optimize-sibling-calls

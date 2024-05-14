@@ -1,6 +1,7 @@
 #pragma once
 
 #include <types.h>
+#include <sbi/sbi_timer.h>
 #include <sbi/riscv_asm.h>
 #include <sbi/ebi/enclave.h>
 #include <util/gnu_attribute.h>
@@ -18,8 +19,8 @@ typedef u64 s_timer_t;
 #define EXT_TIMER(name) extern eval_timer_t timer_##name[NUM_ENCLAVE + 1]
 
 #define INIT_TIMER(name, eid) timer_##name[eid].last = 0UL; timer_##name[eid].time = 0UL;
-#define START_TIMER(name, eid) timer_##name[eid].last = csr_read(CSR_MCYCLE);
-#define STOP_TIMER(name, eid) timer_##name[eid].time += (csr_read(CSR_MCYCLE) - timer_##name[eid].last);
+#define START_TIMER(name, eid) timer_##name[eid].last = sbi_timer_value();
+#define STOP_TIMER(name, eid) timer_##name[eid].time += (sbi_timer_value() - timer_##name[eid].last);
 
 #define GET_TIMER_VALUE(name, eid) timer_##name[eid].time
 

@@ -157,7 +157,7 @@ device_t uart = {
 #elif defined __UNMATCHED__
     .pa_start = 0x10011000,
 #elif defined __VISIONFIVE2__
-    .pa_start = 0x10000000,
+    .pa_start = 0x10011000,
 #else
 #error "unknown platform"
 #endif
