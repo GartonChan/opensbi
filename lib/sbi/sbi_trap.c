@@ -251,21 +251,20 @@ int pmp_fault_handler(u64 eid, u64 mtval)
 	    flush_tlb(); // important!
     }
 
-    if (ret) {
+    if (ret == 0) {  // ret is from enclave_hit_region (1: hit, 0: not hit)
         pmp_dump();
         LOG(eid);
-        LOG(pt_root);
-        LOG(pa);
-        sbi_error("Error: enclave should not access this pa\n");
-    }
-    if (eid == HOST_EID) {
-		pmp_dump();
         LOG(mtval);
-        LOG(pt_root);
-        LOG(pa);
-        // sbi_error("Error: host should not access this pa\n");
-        sbi_panic("Error: host should not access this pa\n");
-    }
+		LOG(pt_root);
+		LOG(pa);
+        
+		if (eid == HOST_EID) {
+			// sbi_error("Error: host should not access this pa\n");
+			sbi_panic("Error: host should not access this pa\n");
+		} else {
+	        sbi_error("Error: enclave should not access this pa\n");
+		}
+	}
 
     STOP_TIMER(lpmp, eid);
 

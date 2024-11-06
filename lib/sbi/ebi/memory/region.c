@@ -154,11 +154,11 @@ static int __enclave_hit_region(u64 eid, paddr_t pa)
 			cur->count++;
 			sbi_list_del_init(&cur->entry);
 			sbi_list_add(&cur->entry, &enc_reg->reg_list);
-			return 0;
+			return 1;  // 1: hit
 		}
 	}
 
-	return -1;
+	return 0;  // 0: not hit
 }
 
 static void __enclave_free_regions(u64 eid)
