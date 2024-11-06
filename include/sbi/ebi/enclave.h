@@ -7,7 +7,7 @@
 #include <enclave/threads.h>
 #include "sbi/riscv_locks.h"
 
-#define NUM_CORES	4
+#define NUM_CORES	8   // TODO: specified in the platform
 void init_enclave_desc();
 bool ebi_is_called();
 

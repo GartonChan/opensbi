@@ -128,7 +128,7 @@ void init_enclave_desc()
 			.alive_threads = 0UL,
 			.online_threads = 0UL,
             .blocked_threads = 0UL,
-			.thread_count = 0UL,
+			.thread_count = 1UL,  // 1UL is the main thread id, 0 is not used.
             .thread_is_cloned = 0UL,	
 			.hartid = HARTID_OFFLINE,
 			.num_fork = 0
@@ -217,7 +217,7 @@ u64 get_current_tid(void)
 
 u64 get_enclave_satp(u64 eid)
 {
-	enclave_context_t *context = get_context_by_eid_tid(eid, 0UL);	
+	enclave_context_t *context = get_context_by_eid_tid(eid, 1UL);  // 1UL is the parent tid
 	return context->satp;
 }
 
@@ -280,11 +280,16 @@ u64 get_blocked_threads(u64 eid)
     return ret;
 }
 
+void __set_clear_child_tid(u64 eid, u64 tid, u64 tidptr)
+{
+	enclave_desc[eid].clear_child_tid[tid] = tidptr;
+    smp_mb();
+}
+
 void set_clear_child_tid(u64 eid, u64 tid, u64 tidptr)
 {
     spin_lock_enclave(eid);
-    enclave_desc[eid].clear_child_tid[tid] = tidptr;
-    smp_mb();
+	__set_clear_child_tid(eid, tid, tidptr);
 	spin_unlock_enclave(eid);
 }
 
@@ -349,12 +354,13 @@ static inline void __set_enclave_status(u64 eid, u8 status)
 }
 
 
+// allocate a available new_tid
 static u64 __new_alive_thread(u64 eid, u64 p_tid)
 {
-	u64 *alive_threads = &enclave_desc[eid].alive_threads;
-	u64 new_tid = enclave_desc[eid].thread_count++;
-	*alive_threads |= (1UL << new_tid);
-	enclave_desc[eid].p_tid[new_tid] = p_tid;
+	u64 *alive_threads = &enclave_desc[eid].alive_threads;  // bitmap of alive threads
+	u64 new_tid = (enclave_desc[eid].thread_count)++;       // thread count
+	*alive_threads |= (1UL << new_tid);					    // set new thread to alive
+	enclave_desc[eid].p_tid[new_tid] = p_tid;               // set parent thread id for new thread
 	if (new_tid >= NUM_THREADS) {
 		sbi_panic("Too many threads!\n");
 	}
@@ -377,8 +383,8 @@ static void __kill_thread(u64 eid, u64 tid)
     enclave_desc[eid].online_threads &= ~(1UL << tid);
     enclave_desc[eid].blocked_threads &= ~(1UL << tid);
     enclave_desc[eid].thread_is_cloned &= ~(1UL << tid);
-    sbi_memset(&enclave_desc[eid].clear_child_tid, 0,
-        sizeof(enclave_desc[eid].clear_child_tid));
+    sbi_memset(&enclave_desc[eid].clear_child_tid[tid], 0,
+        sizeof(enclave_desc[eid].clear_child_tid[tid]));
 	sbi_debug("__kill_thread tid = %lu\n", tid);
 	sbi_debug("__kill_thread p_tid[%lu] = %lu\n",
 		tid, enclave_desc[eid].p_tid[tid]);
@@ -892,8 +898,11 @@ static boot_info_t create_enclave()
 	START_TIMER(creation, eid);
 
 	__set_enclave_status(eid, ENCLAVE_INIT);
-	u64 tid = new_alive_thread(eid, -1UL);
-	ASSERT(tid == 0UL, "new tid expected to be 0");
+	u64 tid = new_alive_thread(eid, -1UL);  // p_tid = -1 means no parent thread
+	show(tid);
+	// ASSERT(tid == 0UL, "new tid expected to be 0");
+	ASSERT(tid == 1UL, "new tid expected to be 1");  // bug fix: use 1 instead of 0 as main thread id
+
 
 	// should this function be protected by lock?
 	enclave_pa_start = alloc_partitions_for_enclave(eid, 1, NULL, 1);
@@ -986,7 +995,7 @@ static void __exit_enclave(u64 eid)
 	enclave_desc[eid].alive_threads = 0UL;
 	enclave_desc[eid].online_threads= 0UL;
 	enclave_desc[eid].blocked_threads = 0UL;
-	enclave_desc[eid].thread_count= 0UL;
+	enclave_desc[eid].thread_count= 1UL;  // using 1 instead of 0 as main thread id
 	enclave_desc[eid].thread_is_cloned = 0UL;
 	enclave_desc[eid].num_fork = 0UL;
 	for (u64 i = 0; i < NUM_THREADS; i++) {
@@ -1067,7 +1076,7 @@ int ebi_enter_handler(struct sbi_trap_regs* regs)
 	);
 
 	__enclave_switch(HOST_EID, 0UL,
-		eid, 0UL, regs);
+		eid, 1UL, regs);  // 1 instead of 0 as main thread id
 
 	regs->a0 = load_info.umode_payload_pa_start;
 	regs->a1 = load_info.umode_payload_size;
@@ -1198,16 +1207,21 @@ static int __sys_vfork_handler(struct sbi_trap_regs* regs)
 long clone(unsigned long flags, void *stack,
                      int *parent_tid, unsigned long tls,
 					 int *child_tid);
+
+ * From musl-1.2.3
+// # __clone(func, stack, flags, arg, ptid, tls, ctid)
+// #           a0,    a1,    a2,  a3,   a4,  a5,   a6
 */
 #define DEFAULT_STACK_SIZE 131072
 int sys_clone_handler(struct sbi_trap_regs* regs)
 {
 	sbi_info("Clone syscall handling\n");
-
-    u64 eid = get_current_eid();
-	u64 p_tid = get_current_tid();
-
-	spin_lock_enclave(eid);
+	// passed in parameters
+	show(regs->a0);  // flags                              // flags
+	show(regs->a1);  // stack                              // stack
+	show(regs->a2);  // &new->tid  : child tid             // ptid (ctid in parent's memory)
+	show(regs->a3);  // TP_ADJ(new)  : pthread struct ptr  // tls
+	show(regs->a4);  // &__thread_list_lock                // ctid (ctid in child's memory)
 
 	u64 flags = regs->a0;
 	u64 c_stack_va = regs->a1;
@@ -1215,24 +1229,29 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
 	u64 c_tls = regs->a3;
 	u64 child_tid_ptr = regs->a4;
 
+    u64 eid = get_current_eid();
+	u64 p_tid = get_current_tid();
 	int ret = 0;
+
+	spin_lock_enclave(eid);
 	if (flags == 0x11UL) {
 		ret = __sys_vfork_handler(regs);
 		goto out;
 	}
-	
+
 	if (flags != 0x7d0f00UL) {
 		sbi_warn("Unusual clone flags 0x%lx, expected 0x%lx\n",
 		flags, 0x7d0f00UL);
+		spin_unlock_enclave(eid);
         sbi_panic("Stall\n");
     }
-	
-	show(flags);
-	LOG(c_stack_va);
-	show(parent_tid_ptr);
-	show(child_tid_ptr);
-	show(c_tls);
-    show(regs->tp);
+
+	show(flags);           // a0
+	show(c_stack_va);      // a1
+	show(parent_tid_ptr);  // a2
+	show(c_tls);           // a3
+	show(child_tid_ptr);   // a4
+	show(regs->tp);
 
 	__unused u64 mpp = get_current_mpp();
 	show(mpp);
@@ -1240,8 +1259,7 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
 	show(csr_read(CSR_SEPC));
 
 	u64 c_tid = __new_alive_thread(eid, -1UL);
-	sbi_debug("Enclave %lu thread %lu cloning new thread %lu\n",
-		eid, p_tid, c_tid);
+	
 	__mark_thread_cloned(eid, p_tid);
 	__mark_thread_cloned(eid, c_tid);
 
@@ -1255,10 +1273,15 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
 		sbi_error("Store failed at 0x%lx, cause = 0x%lx\n", child_tid_ptr, trap.cause);
 
     u64 alive_threads = enclave_desc[eid].alive_threads;
-    enclave_desc[eid].clear_child_tid[c_tid] = child_tid_ptr;
+
+    __set_clear_child_tid(eid, c_tid, child_tid_ptr);
+	sbi_debug("Enclave %lu thread %lu cloning new thread %lu with clear_child_tid=0x%lx\n",
+		eid, p_tid, c_tid, child_tid_ptr);
+	// DUMP_clear_child_tid(eid);
+
     if ((alive_threads & ~(1 << p_tid)) == 0)
         __set_enclave_status(eid, ENCLAVE_IDLE);
-	
+
 	// ! before this line regs belong to parent thread.
 	// ! afterwards regs belong to the host.
     __enclave_switch(eid, p_tid,
@@ -1281,8 +1304,11 @@ int sys_clone_handler(struct sbi_trap_regs* regs)
     show(p_context->mepc);
     show(c_context->mepc);
 
-    regs->a0 = NEW_THREAD | (u32)c_tid;
+    regs->a0 = NEW_THREAD | (u32)c_tid;  // short message to host
+	show(regs->a0);
+	
     // host: regs->mepc does not have to change.
+	show(ret);
 
 out:
 	spin_unlock_enclave(eid);
@@ -1293,7 +1319,7 @@ int ebi_block_thread_handler(struct sbi_trap_regs *regs)
 {
     u64 tid_to_block = regs->a0;
     u64 eid = get_current_eid();
-
+	sbi_debug("Blocking thread %lu in enclave %lu\n", tid_to_block, eid);
     block_thread(eid, tid_to_block);
 
     return 0;
@@ -1344,7 +1370,8 @@ int ebi_resume_handler(struct sbi_trap_regs* regs)
 
     __set_enclave_status(eid, ENCLAVE_RUN);
 	__enclave_switch(HOST_EID, 0UL,
-		eid, tid, regs);  // check here
+		eid, tid, regs);
+
 	sbi_debug("Resuming enclave %lu thread %lu\n", eid, tid);
     show(get_current_mpp())
 
@@ -1408,9 +1435,10 @@ int ebi_exit_handler(struct sbi_trap_regs* regs)
 	START_TIMER(execution, current_eid);
 
 	sbi_debug("ebi_exit_handler(enclave) start\n");	
-	sbi_debug("eid = %lu, eid = %lu\n", current_eid, current_tid);
+	sbi_debug("eid = %lu, tid = %lu\n", current_eid, current_tid);
 	show(current_hartid());
-	if (current_tid == 0) {
+
+	if (current_tid == 1UL) {  // main thread exiting
 		START_TIMER(clean_up, current_eid);
 
 		if (current_eid == HOST_EID)
@@ -1422,6 +1450,7 @@ int ebi_exit_handler(struct sbi_trap_regs* regs)
 
 		__enclave_switch(current_eid, current_tid,
 			HOST_EID, 0UL, regs);
+
 		__exit_enclave(current_eid);
 
 		regs->a0 = ret;	// host context
@@ -1434,3 +1463,4 @@ int ebi_exit_handler(struct sbi_trap_regs* regs)
 	spin_unlock_enclave(current_eid);
 	return 0;
 }
+
