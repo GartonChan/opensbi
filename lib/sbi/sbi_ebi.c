@@ -76,7 +76,15 @@ int sbi_ebi_handler(u64 insn, struct sbi_trap_regs *regs)
     case SBI_EXT_EBI_MEM_ALLOC:
         sbi_debug("SBI_EXT_EBI_MEM_ALLOC\n");
         START_TIMER(mem_alloc, eid);
-        ret = ebi_mem_alloc_handler(regs);
+        ret = ebi_mem_alloc_handler(regs, 0);
+        STOP_TIMER(mem_alloc, eid);
+        break;
+
+    case SBI_EXT_EBI_SHARED_MEM_ALLOC:
+        sbi_debug("SBI_EXT_EBI_SHARED_MEM_ALLOC\n");
+        START_TIMER(mem_alloc, eid);
+        ret = ebi_mem_alloc_handler(regs, 1);
+        // ret = ebi_shared_mem_alloc_handler(regs, 1);
         STOP_TIMER(mem_alloc, eid);
         break;
 

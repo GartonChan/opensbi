@@ -585,7 +585,8 @@ paddr_t alloc_partitions_for_enclave(
     u64 eid,
     usize number_of_partitions,
     usize *suggestion,
-    int is_inst
+    int is_inst,
+    int shared
 )
 {
     usize ret_idx;
@@ -620,6 +621,10 @@ paddr_t alloc_partitions_for_enclave(
             if (ret_idx != -1) {
                 update_partition_ownership(ret_idx, ret_idx + number_of_partitions, eid);
                 __enclave_add_region(eid, IDX_TO_PA(ret_idx), number_of_partitions << PARTITION_SHIFT, is_inst);
+                if (shared) {
+                    __enclave_add_region(HOST_EID, IDX_TO_PA(ret_idx),
+                        number_of_partitions << PARTITION_SHIFT, is_inst);
+                }
                 goto alloc_return;
             }
         }
@@ -635,6 +640,10 @@ paddr_t alloc_partitions_for_enclave(
         update_partition_ownership(ret_idx, ret_idx + number_of_partitions, eid);
         __enclave_add_region(eid, IDX_TO_PA(ret_idx),
             number_of_partitions << PARTITION_SHIFT, is_inst);
+            if (shared) {
+                __enclave_add_region(HOST_EID, IDX_TO_PA(ret_idx),
+                    number_of_partitions << PARTITION_SHIFT, is_inst);
+            }
         goto alloc_return;
     } else {
         goto fail_return;

@@ -6,8 +6,16 @@
 #include <sbi/ebi/ebi_debug.h>
 #include <sbi/ebi/pmp.h>
 
-int ebi_mem_alloc_handler(struct sbi_trap_regs *regs)
+int ebi_mem_alloc_handler(struct sbi_trap_regs *regs, int shared)
 {
+	// debug
+	sbi_debug("[%s]\n", __func__);
+	show(regs->a0);
+	show(regs->a1);
+	show(regs->a2);
+	// show(regs->a3);
+	// show(regs->a4);
+
 	usize number_of_partitions = regs->a1;
 
 	u64 current_eid = get_current_eid();
@@ -21,7 +29,8 @@ int ebi_mem_alloc_handler(struct sbi_trap_regs *regs)
 		current_eid,
 		number_of_partitions,
 		&regs->a0,
-        0
+        0,
+		shared
 	);
 	activate_lpmp(current_eid);
 

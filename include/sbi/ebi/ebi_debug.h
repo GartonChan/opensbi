@@ -42,8 +42,8 @@
 #define sbi_DEBUG(fmt, ...) sbi_printf(KWHT LOG_PREFIX fmt RESET, current_hartid(), get_current_eid(),  get_current_tid(), __func__, ##__VA_ARGS__)
 
 #define sbi_error(fmt, ...)                                         \
-    sbi_printf(KRED "[Core %u][Enclave %lu][%s] ERROR: " fmt RESET, \
-        current_hartid(), get_current_eid(), __func__,              \
+    sbi_printf(KRED "[Core %u][E%luT%lu][%s] ERROR: " fmt RESET, \
+        current_hartid(), get_current_eid(), get_current_tid(), __func__,              \
         ##__VA_ARGS__)
 #define sbi_fatal(fmt, ...)                                         \
     do {                                                            \

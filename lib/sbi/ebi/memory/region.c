@@ -240,6 +240,8 @@ void region_init()
 		SBI_INIT_LIST_HEAD(&enc_reg->reg_list);
 	}
 
+	// [ IO.. | SM | left | pool | right ]
+	// usize size_left = get_pool_base() - PHYS_MEM_SM_END;
 	usize size_left = get_pool_base() - PHYS_MEM_START;
 	usize size_right = PHYS_MEM_END - get_pool_base() - POOL_SIZE;
 
@@ -247,6 +249,7 @@ void region_init()
 
 	enclave_add_region(HOST_EID, PHYS_MEM_START, size_left, 0);
 	enclave_add_region(HOST_EID, get_pool_base() + POOL_SIZE, size_right, 0);
+	// enclave_add_region(HOST_EID, PHYS_MEM_SM_END, size_left, 0);
 }
 
 void region_reset()
@@ -296,6 +299,8 @@ __unused void dump_region_list(u64 eid)
 
 __unused void dump_region()
 {
+	__dump_region_list(HOST_EID);  // only for debugging
+
 	for (usize i = 1; i <= NUM_ENCLAVE; i++) {
 		u8 status = get_enclave_status(i);
 		if (status)
