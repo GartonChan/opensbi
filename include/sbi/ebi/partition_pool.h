@@ -27,7 +27,8 @@ void enclave_memory_clear(u64 eid);
 void wait_for_compaction(void);
 int try_region_migration(u64 eid);
 paddr_t alloc_partitions_for_enclave(u64 eid,
-	usize number_of_partitions, usize *suggestion, int is_inst);
+	usize number_of_partitions, usize *suggestion,
+	int is_inst, int shared);
 // void addr_record(paddr_t emod_manager_start_pa_ptr,
 // 	paddr_t umode_pool_pa_aligned_ptr);
 int init_partition_pool(void);

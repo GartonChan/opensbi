@@ -259,6 +259,7 @@ int pmp_fault_handler(u64 eid, u64 mtval)
         sbi_error("Error: enclave should not access this pa\n");
     }
     if (eid == HOST_EID) {
+		pmp_dump();
         LOG(mtval);
         LOG(pt_root);
         LOG(pa);
@@ -394,6 +395,7 @@ struct sbi_trap_regs *sbi_trap_handler(struct sbi_trap_regs *regs)
 			msg = "clone syscall handler failed";
 			break;
 		}
+		// else fallthrough to redirect;
 	default:
 		/* If the trap came from S or U mode, redirect it there */
 		trap.epc = regs->mepc;

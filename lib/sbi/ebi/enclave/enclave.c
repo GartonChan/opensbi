@@ -896,7 +896,7 @@ static boot_info_t create_enclave()
 	ASSERT(tid == 0UL, "new tid expected to be 0");
 
 	// should this function be protected by lock?
-	enclave_pa_start = alloc_partitions_for_enclave(eid, 1, NULL, 1);
+	enclave_pa_start = alloc_partitions_for_enclave(eid, 1, NULL, 1, 0);
 
 	smode_payload_size = load_smode_payload(enclave_pa_start);
 
@@ -928,11 +928,12 @@ static load_info_t enter_enclave(
 	struct sbi_trap_info dummy_trap;
 
 	usize number_of_partitions = 
-		PARTITION_UP(umode_payload_size) / PARTITION_SIZE;
+		PARTITION_UP(umode_payload_size) / PARTITION_SIZE + 1;
+	// reserved one partition for pool usage
 	show(number_of_partitions);
 
 	umode_payload_pa_start =
-		alloc_partitions_for_enclave(eid, number_of_partitions, NULL, 1);
+		alloc_partitions_for_enclave(eid, number_of_partitions, NULL, 1, 0);
 	show(umode_payload_pa_start);
 
 	copy_from_user(
