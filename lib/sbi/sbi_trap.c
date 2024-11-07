@@ -267,7 +267,7 @@ int pmp_fault_handler(u64 eid, u64 mtval)
 	}
 
     STOP_TIMER(lpmp, eid);
-
+	ret = 0;  // no error return to trap handler.
     return ret;
 }
 
