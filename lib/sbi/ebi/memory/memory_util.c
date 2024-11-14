@@ -5,6 +5,8 @@
 #include <sbi/sbi_unpriv.h>
 #include <util/gnu_attribute.h>
 #include <sbi/sbi_system.h>
+#include "sbi/ebi/region.h"
+#include "sbi/ebi/pmp.h"
 
 __unused static pte_t* get_pte(pte_t* root, uintptr_t va)
 {
@@ -37,17 +39,46 @@ int copy_from_user_not_aligned(
 )
 {
     __unused struct sbi_trap_info _;
-    while (size > 0) {
-        *(uint8_t*)maddr = sbi_load_u8((uint8_t*)uaddr, &_);
-        ++maddr;
-        ++uaddr;
-        --size;
+    
+    // void *pt_root = get_pt_root();
+    // paddr_t pa = pt_root ? get_pa(pt_root, uaddr) : uaddr;
+    // uint8_t *uaddr_ptr = (uint8_t *)pa;
+    uint8_t *maddr_ptr = (uint8_t *)maddr;
+    uint8_t *uaddr_ptr = (uint8_t *)uaddr;
 
+    // Here is an incidental bug !!!
+    // temporarily to fix it with using sbi_load_u64 / sbi_load_u8
+    // because the pa corresponding to uaddr is not activated into PMP (though in retions)
+    while (size >= sizeof(uint64_t)) {
+        // *(uint64_t *)maddr_ptr = *(uint64_t *)uaddr_ptr;
+        *(uint64_t *)maddr_ptr = sbi_load_u64((uint64_t *)uaddr_ptr, &_);
         if (_.cause) {
-            sbi_error("Copy failed at 0x%lx, cause = 0x%lx\n", maddr, _.cause);
+            sbi_error("Copy failed at 0x%lx, cause = 0x%lx\n", (paddr_t)maddr_ptr, _.cause);
+            
+            dump_region();
+            __pmp_dump();
             sbi_panic("Stall\n");
             return -1;
         }
+        maddr_ptr += sizeof(uint64_t);
+        uaddr_ptr += sizeof(uint64_t);
+        size -= sizeof(uint64_t);
+    }
+
+    // handle the rest
+    while (size > 0) {
+        // *(uint8_t *)maddr_ptr = *(uint8_t *)uaddr_ptr;
+        *(uint8_t *)maddr_ptr = sbi_load_u8(uaddr_ptr, &_);
+        if (_.cause) {
+            sbi_error("Copy failed at 0x%lx, cause = 0x%lx\n", (paddr_t)maddr_ptr, _.cause);
+            dump_region();
+            __pmp_dump();
+            sbi_panic("Stall\n");
+            return -1;
+        }
+        ++maddr_ptr;
+        ++uaddr_ptr;
+        --size;
     }
     return 0;
 }
