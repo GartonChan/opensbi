@@ -515,7 +515,23 @@ static void unblock_threads(u64 eid, u64 threads_to_unblock)
 void reset_coffer()
 {
 	spin_lock(&eid_lock);
+
+	for (u64 i = 0; i <= NUM_ENCLAVE; i++) {
+		enclave_desc[i].status = ENCLAVE_FREE;
+		enclave_desc[i].alive_threads = 0UL;
+		enclave_desc[i].online_threads = 0UL;
+		enclave_desc[i].blocked_threads = 0UL;
+		enclave_desc[i].thread_count = 1UL;
+		enclave_desc[i].thread_is_cloned = 0UL;
+		enclave_desc[i].hartid = HARTID_OFFLINE;
+		enclave_desc[i].num_fork = 0;
+        for (u64 j = 0; j < NUM_THREADS; j++) {
+            enclave_desc[i].clear_child_tid[j] = 0;
+			enclave_desc[i].p_tid[j] = -1UL;
+        }
+	}
 	eid_count = 1;
+
 	spin_unlock(&eid_lock);
 }
 
